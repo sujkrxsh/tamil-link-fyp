@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TamilLink</string>
+    <string name="title_activity_main">TamilLink</string>
+    <string name="package_name">com.sujith.tamillink</string>
+    <string name="custom_url_scheme">com.sujith.tamillink</string>
+</resources>

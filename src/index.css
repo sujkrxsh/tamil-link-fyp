@@ -3,7 +3,7 @@
 
 :root {
   /* Ultra-Warm, Soft Minimalist Base */
-  --bg-main: #FDFBF7; /* A warmer, softer cream */
+  --bg-main: #FDFBF7; 
   --bg-surface: #FFFFFF; 
   --bg-input: #F3F0EA; 
   
@@ -14,13 +14,13 @@
   --text-secondary: #737373;
   --text-tertiary: #A3A3A3;
   
-  /* Cosy Geometry (Bigger, Softer Radii) */
+  /* Cosy Geometry */
   --border-subtle: 1px solid #EAE4DD;
-  --radius-card: 32px; /* Massive squircle corners for maximum cozy vibe */
+  --radius-card: 32px; 
   --radius-pill: 100px;
   --radius-input: 20px;
   
-  /* Diffuse, airy shadows instead of harsh borders */
+  /* Diffuse, airy shadows */
   --shadow-soft: 0 12px 40px -8px rgba(0, 0, 0, 0.05);
   --shadow-glow: 0 12px 36px -6px rgba(255, 81, 47, 0.15);
 }
@@ -40,16 +40,30 @@ body {
   overflow-x: hidden;
 }
 
+/* --- Prevent UI Text Selection (Native App Feel) --- */
+.floating-nav, 
+.btn-primary, 
+.btn-tickets, 
+.filter-pill, 
+.toggle-btn, 
+.modal-close,
+.nav-btn {
+  -webkit-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none; 
+  -webkit-tap-highlight-color: transparent; 
+}
+
 /* --- Layouts --- */
 .app-container {
-  max-width: 500px; /* Tighter column to feel like a real phone screen on desktop */
+  max-width: 500px; 
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
 }
 
 .page-content {
-  padding: 1.25rem; /* Consistent, comfortable breathing room on the edges */
+  padding: 1.25rem; 
   padding-bottom: 6rem;
   display: flex;
   flex-direction: column;
@@ -65,12 +79,46 @@ body {
   animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* --- Animated Loading Screen --- */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 40vh;
+  gap: 1.5rem;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--bg-input);
+  border-top-color: var(--accent-solid);
+  border-radius: 50%;
+  animation: spin 1s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-weight: 600;
+  color: var(--text-secondary);
+  animation: pulseText 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 /* --- Floating Pill Navigation --- */
 .floating-nav-wrapper {
   position: sticky;
   top: 1rem;
   z-index: 50;
-  padding: 0 1.25rem; /* Matches page-content padding */
+  padding: 0 1.25rem; 
   margin-bottom: 1rem;
 }
 
@@ -96,40 +144,30 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-.nav-actions {
-  display: flex;
-  gap: 0.5rem;
-}
+.nav-actions { display: flex; gap: 0.5rem; }
 
 .nav-btn {
   background: var(--bg-input);
   color: var(--text-primary);
   border: none;
-  width: 44px; /* Minimum Apple Touch Target Size */
+  width: 44px; 
   height: 44px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: transform 0.2s, background 0.2s;
 }
 
-.nav-btn:active {
-  transform: scale(0.92);
-  background: #EAE4DD;
-}
+.nav-btn:active { transform: scale(0.92); background: #EAE4DD; }
 
 /* --- The Cards & Panels --- */
 .profile-section, .expanding-card {
   background-color: var(--bg-surface);
   border-radius: var(--radius-card);
-  padding: 1.75rem; /* Lots of internal breathing room */
-  border: none; /* Removing borders makes it feel softer */
+  padding: 1.75rem; 
+  border: none; 
   box-shadow: var(--shadow-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  display: flex; flex-direction: column; gap: 1.25rem;
 }
 
 .expanding-card {
@@ -144,24 +182,20 @@ body {
   box-shadow: 0 20px 40px -8px rgba(0,0,0,0.08);
 }
 
-.expanding-card.is-expanded {
-  box-shadow: var(--shadow-glow);
-}
+.expanding-card.is-expanded { box-shadow: var(--shadow-glow); }
 
 /* Morphing Poster */
 .card-image-wrapper {
   width: 100%;
   height: 140px; 
-  border-radius: 20px; /* Softer inner image corners */
+  border-radius: 20px; 
   overflow: hidden;
   transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   background: var(--bg-input);
 }
 
-.expanding-card.is-expanded .card-image-wrapper {
-  height: 350px; 
-}
+.expanding-card.is-expanded .card-image-wrapper { height: 350px; }
 
 .card-poster-img {
   width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease;
@@ -169,80 +203,65 @@ body {
 
 .expanding-card:hover .card-poster-img { transform: scale(1.05); }
 
+/* --- Auth Screen Specifics --- */
+.auth-container {
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 100vh; padding: 2rem; max-width: 450px; margin: 0 auto;
+  position: relative; z-index: 10;
+}
+
+.auth-header { margin-bottom: 2.5rem; text-align: center; }
+
+.auth-header h1 {
+  font-size: 2.8rem; font-weight: 800;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem; letter-spacing: -0.04em;
+}
+
 /* --- Buttons & Inputs --- */
 .input-group { display: flex; flex-direction: column; gap: 1rem; }
 
 input, textarea {
-  width: 100%;
-  padding: 1.25rem 1.5rem; /* Generous pill-like padding */
-  background-color: var(--bg-input);
-  border: 2px solid transparent;
-  border-radius: var(--radius-input);
-  color: var(--text-primary);
-  font-size: 1.05rem;
-  font-weight: 500;
-  outline: none;
-  transition: all 0.2s ease;
+  width: 100%; padding: 1.25rem 1.5rem; 
+  background-color: var(--bg-input); border: 2px solid transparent;
+  border-radius: var(--radius-input); color: var(--text-primary);
+  font-size: 1.05rem; font-weight: 500; outline: none; transition: all 0.2s ease;
 }
 
 input:focus, textarea:focus {
-  background-color: var(--bg-surface);
-  border-color: var(--accent-solid);
+  background-color: var(--bg-surface); border-color: var(--accent-solid);
   box-shadow: 0 0 0 4px rgba(255, 81, 47, 0.1);
 }
 
 .btn-primary, .btn-tickets {
-  width: 100%;
-  padding: 1.25rem;
-  background: var(--accent-gradient);
-  color: white;
-  border: none;
-  border-radius: var(--radius-pill);
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
-  box-shadow: var(--shadow-glow);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
+  width: 100%; padding: 1.25rem; background: var(--accent-gradient);
+  color: white; border: none; border-radius: var(--radius-pill);
+  font-size: 1.1rem; font-weight: 700; text-align: center; text-decoration: none;
+  cursor: pointer; transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+  box-shadow: var(--shadow-glow); display: flex; justify-content: center; align-items: center; gap: 0.5rem;
 }
 
 .btn-primary:active, .btn-tickets:active { transform: scale(0.96); box-shadow: none; }
+
+.toggle-btn {
+  background: transparent; border: none; color: var(--text-secondary);
+  font-weight: 600; margin-top: 1.5rem; cursor: pointer; width: 100%;
+  padding: 1rem; transition: color 0.2s;
+}
+
+.toggle-btn:active { color: var(--text-primary); }
 
 /* Filter Pills */
 .filter-scroll {
   display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: none;
 }
 .filter-pill {
-  padding: 0.6rem 1.25rem;
-  background: var(--bg-surface);
-  border: none;
-  border-radius: var(--radius-pill);
-  font-weight: 600;
-  color: var(--text-secondary);
-  box-shadow: var(--shadow-soft);
-  white-space: nowrap;
+  padding: 0.6rem 1.25rem; background: var(--bg-surface); border: none;
+  border-radius: var(--radius-pill); font-weight: 600; color: var(--text-secondary);
+  box-shadow: var(--shadow-soft); white-space: nowrap; cursor: pointer;
 }
-.filter-pill.active {
-  background: var(--text-primary);
-  color: var(--bg-main);
-}
-
-/* Floating Modal overrides */
-.modal-overlay {
-  background: rgba(253, 251, 247, 0.8); /* Warmer blur */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.modal-content {
-  border-radius: var(--radius-card);
-  border: none;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.1);
-}
+.filter-pill.active { background: var(--text-primary); color: var(--bg-main); }
 
 /* Typography */
 .event-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; }

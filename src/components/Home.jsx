@@ -57,10 +57,12 @@ const Home = () => {
         </div>
       )}
 
+      {/* Conditional Rendering: Loading Spinner -> Empty State -> Feed */}
       {loading ? (
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '2rem' }}>
-          {t("Loading the feed...", "ஊட்டத்தை ஏற்றுகிறது...")}
-        </p>
+        <div className="loading-container animate-in">
+          <div className="loading-spinner"></div>
+          <p className="loading-text">{t("Discovering events...", "நிகழ்வுகளைத் தேடுகிறது...")}</p>
+        </div>
       ) : filteredEvents.length === 0 ? (
         <div className="expanding-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
           <h2 className="event-title">{t("It's quiet here.", "இங்கே அமைதியாக இருக்கிறது.")}</h2>
