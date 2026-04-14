@@ -4,7 +4,7 @@ import { collection, addDoc, deleteDoc, query, where, getDocs, doc, setDoc } fro
 import { useLanguage } from '../context/LanguageContext';
 import { 
   Calendar, MapPin, Building, ChevronDown, ChevronUp, 
-  Heart, ExternalLink, Maximize2, AlertTriangle, UserPlus, Check
+  Heart, ExternalLink, Maximize2, AlertTriangle, UserPlus, Check, X
 } from 'lucide-react';
 
 const EventCard = ({ event }) => {
@@ -16,6 +16,12 @@ const EventCard = ({ event }) => {
   
   // Full-screen image state
   const [showFullImage, setShowFullImage] = useState(false);
+
+  // Custom Report Modal State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState(null); // { type: 'success' | 'error', message: '' }
   
   const { t } = useLanguage();
   const eventDate = new Date(event.date);
@@ -53,7 +59,7 @@ const EventCard = ({ event }) => {
   // --- ACTIONS ---
 
   const handleSave = async (e) => {
-    e.stopPropagation(); // Prevents card from expanding when clicking the heart
+    e.stopPropagation(); 
     if (!auth.currentUser) return alert(t("Please log in to save events.", "நிகழ்வுகளைச் சேமிக்க உள்நுழையவும்."));
 
     try {
@@ -82,7 +88,6 @@ const EventCard = ({ event }) => {
     if (!auth.currentUser) return;
 
     try {
-      // Use a composite ID so a user can only follow an organiser once
       const followId = `${auth.currentUser.uid}_${event.organiser.replace(/\s+/g, '')}`;
       
       if (isFollowing) {
@@ -101,30 +106,107 @@ const EventCard = ({ event }) => {
     }
   };
 
-  const handleReport = async (e) => {
+  // --- CUSTOM REPORT LOGIC ---
+
+  const openReportModal = (e) => {
     e.stopPropagation();
-    if (!auth.currentUser) return;
-    
-    const reason = window.prompt(t("Why are you reporting this event?", "இந்த நிகழ்வை ஏன் புகாரளிக்கிறீர்கள்?"));
-    if (!reason) return;
+    if (!auth.currentUser) return alert(t("Please log in to report events.", "புகாரளிக்க உள்நுழையவும்."));
+    setIsReportModalOpen(true);
+    setReportReason('');
+    setReportFeedback(null);
+  };
+
+  const submitReport = async () => {
+    if (!reportReason.trim()) return;
+    setIsSubmittingReport(true);
+    setReportFeedback(null);
 
     try {
       await addDoc(collection(db, 'reports'), {
         eventId: event.id,
         eventTitle: event.title,
         reporterId: auth.currentUser.uid,
-        reason: reason,
+        reason: reportReason,
         timestamp: new Date()
       });
-      alert(t("Report submitted to Admin.", "நிர்வாகியிடம் புகார் சமர்ப்பிக்கப்பட்டது."));
+      
+      setReportFeedback({ type: 'success', message: t("Report submitted to Admin.", "நிர்வாகியிடம் புகார் சமர்ப்பிக்கப்பட்டது.") });
+      
+      // Auto-close modal after 2 seconds on success
+      setTimeout(() => {
+        setIsReportModalOpen(false);
+        setReportFeedback(null);
+      }, 2000);
+
     } catch (error) {
-      alert(t("Failed to submit report.", "புகாரைச் சமர்ப்பிக்க முடியவில்லை."));
+      setReportFeedback({ type: 'error', message: t("Failed to submit report.", "புகாரைச் சமர்ப்பிக்க முடியவில்லை.") });
+    } finally {
+      setIsSubmittingReport(false);
     }
   };
 
   return (
     <>
-      {/* Full Screen Image Overlay */}
+      {/* --- CUSTOM REPORT MODAL --- */}
+      {isReportModalOpen && (
+        <div 
+          onClick={() => !isSubmittingReport && setIsReportModalOpen(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+            className="profile-section animate-in" 
+            style={{ width: '100%', maxWidth: '400px', padding: '2rem 1.5rem', position: 'relative' }}
+          >
+            <button 
+              onClick={() => setIsReportModalOpen(false)} 
+              disabled={isSubmittingReport}
+              style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
+            >
+              <X size={24} />
+            </button>
+            
+            <div style={{ background: '#FEF2F2', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+              <AlertTriangle size={28} color="#DC2626" />
+            </div>
+            
+            <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>{t("Report Event", "நிகழ்வைப் புகாரளி")}</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              {t("Please provide a reason for reporting this event. This will be reviewed by an admin.", "இந்த நிகழ்வைப் புகாரளிப்பதற்கான காரணத்தை வழங்கவும்.")}
+            </p>
+
+            {reportFeedback ? (
+              <div style={{ padding: '1rem', background: reportFeedback.type === 'success' ? '#E1FDEB' : '#FEF2F2', color: reportFeedback.type === 'success' ? '#007F3B' : '#DC2626', borderRadius: '12px', fontWeight: 600, textAlign: 'center', marginBottom: '1rem' }}>
+                {reportFeedback.message}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <textarea 
+                  placeholder={t("Enter your reason here...", "உங்கள் காரணத்தை இங்கே உள்ளிடவும்...")}
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  style={{ minHeight: '100px', resize: 'vertical' }}
+                  disabled={isSubmittingReport}
+                />
+                <button 
+                  onClick={submitReport} 
+                  disabled={isSubmittingReport || !reportReason.trim()}
+                  className="btn-primary"
+                  style={{ background: '#DC2626', boxShadow: '0 12px 36px -6px rgba(220, 38, 38, 0.25)' }}
+                >
+                  {isSubmittingReport ? t("Submitting...", "சமர்ப்பிக்கிறது...") : t("Submit Report", "புகாரைச் சமர்ப்பி")}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- FULL SCREEN IMAGE OVERLAY --- */}
       {showFullImage && (
         <div 
           onClick={() => setShowFullImage(false)}
@@ -143,7 +225,7 @@ const EventCard = ({ event }) => {
         </div>
       )}
 
-      {/* Main Event Card */}
+      {/* --- MAIN EVENT CARD --- */}
       <div 
         className={`expanding-card ${expanded ? 'is-expanded' : ''}`} 
         onClick={() => setExpanded(!expanded)}
@@ -158,7 +240,6 @@ const EventCard = ({ event }) => {
             </div>
           )}
           
-          {/* Quick-Save Floating Heart Button */}
           <button 
             onClick={handleSave} 
             style={{
@@ -174,7 +255,6 @@ const EventCard = ({ event }) => {
             <Heart size={20} fill={isSaved ? "var(--accent-solid)" : "transparent"} strokeWidth={isSaved ? 0 : 2} />
           </button>
 
-          {/* Full Screen Image Button (Only visible when card is expanded AND has an image) */}
           {expanded && event.imageUrl && (
             <button 
               onClick={(e) => { e.stopPropagation(); setShowFullImage(true); }} 
@@ -199,7 +279,6 @@ const EventCard = ({ event }) => {
             {expanded ? <ChevronUp size={24} color="var(--text-tertiary)" /> : <ChevronDown size={24} color="var(--text-tertiary)" />}
           </div>
 
-          {/* Quick Meta Data (Always Visible) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <p className="event-meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Calendar size={16} color="var(--accent-solid)" />
@@ -219,12 +298,10 @@ const EventCard = ({ event }) => {
           {expanded && (
             <div className="animate-in" style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
-              {/* Event Description (Hidden until expanded) */}
               <div style={{ background: 'var(--bg-main)', padding: '1.25rem', borderRadius: '20px', fontSize: '0.95rem', lineHeight: '1.6', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
                 {event.description || t("No description provided.", "விளக்கம் வழங்கப்படவில்லை.")}
               </div>
 
-              {/* Action Bar: Tickets & Save */}
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <a 
                   href={event.ticketLink} 
@@ -241,13 +318,11 @@ const EventCard = ({ event }) => {
               {/* Social Proof & Moderator Tools */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: 'var(--border-subtle)' }}>
                 
-                {/* Attendee Count */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
                   <Heart size={16} fill="var(--text-secondary)" color="var(--text-secondary)" />
                   {attendeeCount} {t("saved", "சேமிக்கப்பட்டது")}
                 </div>
 
-                {/* Follow & Report Buttons */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   
                   <button 
@@ -265,7 +340,7 @@ const EventCard = ({ event }) => {
                   </button>
 
                   <button 
-                    onClick={handleReport}
+                    onClick={openReportModal}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       padding: '0.5rem', borderRadius: '12px',
@@ -279,7 +354,6 @@ const EventCard = ({ event }) => {
 
                 </div>
               </div>
-
             </div>
           )}
         </div>
