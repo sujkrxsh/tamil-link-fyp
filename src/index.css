@@ -33,21 +33,14 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* --- Global Native App Feel --- */
 body {
   background-color: var(--bg-main);
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
-}
-
-/* --- Prevent UI Text Selection (Native App Feel) --- */
-.floating-nav, 
-.btn-primary, 
-.btn-tickets, 
-.filter-pill, 
-.toggle-btn, 
-.modal-close,
-.nav-btn {
+  
+  /* Disables text selection and blue tap highlights globally */
   -webkit-user-select: none; 
   -ms-user-select: none; 
   user-select: none; 
@@ -227,6 +220,11 @@ input, textarea {
   background-color: var(--bg-input); border: 2px solid transparent;
   border-radius: var(--radius-input); color: var(--text-primary);
   font-size: 1.05rem; font-weight: 500; outline: none; transition: all 0.2s ease;
+  
+  /* CRITICAL FIX: Re-enables text selection, copying, and pasting ONLY inside forms */
+  -webkit-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
 input:focus, textarea:focus {
