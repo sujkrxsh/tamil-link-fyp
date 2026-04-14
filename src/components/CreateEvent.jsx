@@ -3,6 +3,7 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const CreateEvent = () => {
   const [title, setTitle] = useState('');
@@ -10,7 +11,9 @@ const CreateEvent = () => {
   const [location, setLocation] = useState('');
   const [ticketLink, setTicketLink] = useState('');
   const [description, setDescription] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  
+  // New state to hold the native Base64 string directly
+  const [imageBase64, setImageBase64] = useState(null);
   const [uploading, setUploading] = useState(false);
   
   const [userData, setUserData] = useState(null);
@@ -32,35 +35,38 @@ const CreateEvent = () => {
     checkVerification();
   }, []);
 
-  // Foolproof Base64 Upload Function
-  const uploadToImgBB = async (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file); 
-      
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result.split(',')[1]; 
-          const formData = new FormData();
-          formData.append('image', base64data);
+  // --- NATIVE CAPACITOR PHOTO PICKER ---
+  const handleImagePick = async () => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.Base64, // Bypasses FileReader completely!
+        source: CameraSource.Photos // Opens the native Android gallery
+      });
 
-          const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-            method: 'POST',
-            body: formData
-          });
+      setImageBase64(image.base64String);
+    } catch (error) {
+      console.log("Image selection cancelled or failed by native OS", error);
+    }
+  };
 
-          const data = await response.json();
-          if (data.success) {
-            resolve(data.data.url); 
-          } else {
-            reject(data.error.message || "ImgBB rejected the file.");
-          }
-        } catch (err) {
-          reject(err.message);
-        }
-      };
-      reader.onerror = () => reject("Failed to read the file locally.");
+  // --- IMGBB UPLOAD ---
+  const uploadToImgBB = async (base64data) => {
+    const formData = new FormData();
+    formData.append('image', base64data);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
     });
+
+    const data = await response.json();
+    if (data.success) {
+      return data.data.url; 
+    } else {
+      throw new Error(data.error.message || "ImgBB rejected the file.");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -71,11 +77,11 @@ const CreateEvent = () => {
     try {
       let imageUrl = null;
       
-      if (imageFile) {
+      if (imageBase64) {
         try {
-          imageUrl = await uploadToImgBB(imageFile);
+          imageUrl = await uploadToImgBB(imageBase64);
         } catch (uploadError) {
-          alert(`Image Upload Failed: ${uploadError}`);
+          alert(`Image Upload Failed: ${uploadError.message}`);
           setUploading(false);
           return; 
         }
@@ -102,7 +108,6 @@ const CreateEvent = () => {
     }
   };
 
-  // RBAC Boundary
   if (!userData) {
     return (
       <div className="app-container page-content" style={{textAlign: 'center', justifyContent: 'center'}}>
@@ -117,14 +122,28 @@ const CreateEvent = () => {
       <h1 className="event-title" style={{ marginBottom: '1rem' }}>{t("Drop an Event.", "நிகழ்வை உருவாக்கு.")}</h1>
       
       <form onSubmit={handleSubmit} className="input-group">
-        <div className="file-input-wrapper">
-          <div className="file-upload-btn" style={{ 
-            borderColor: imageFile ? 'var(--accent-solid)' : 'var(--border-subtle)',
-            background: imageFile ? 'rgba(255, 81, 47, 0.05)' : 'var(--bg-surface)'
-          }}>
-            {imageFile ? `📸 ${imageFile.name}` : t("+ Upload Event Poster (Optional)", "+ நிகழ்வு சுவரொட்டியைப் பதிவேற்றவும் (விருப்பத்தேர்வு)")}
-          </div>
-          <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
+        
+        {/* Replaced HTML Input with Native Click Handler */}
+        <div 
+          onClick={handleImagePick}
+          style={{ 
+            borderColor: imageBase64 ? 'var(--accent-solid)' : 'var(--border-subtle)',
+            background: imageBase64 ? 'rgba(255, 81, 47, 0.05)' : 'var(--bg-surface)',
+            width: '100%',
+            padding: '1.25rem',
+            borderRadius: 'var(--radius-input)',
+            textAlign: 'center',
+            fontWeight: 600,
+            color: imageBase64 ? 'var(--accent-solid)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            borderStyle: 'solid',
+            borderWidth: '2px',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {imageBase64 
+            ? t("📸 Poster Selected - Tap to change", "📸 சுவரொட்டி தேர்ந்தெடுக்கப்பட்டது") 
+            : t("+ Upload Event Poster (Optional)", "+ நிகழ்வு சுவரொட்டியைப் பதிவேற்றவும் (விருப்பத்தேர்வு)")}
         </div>
 
         <input type="text" placeholder={t("Event Title", "நிகழ்வின் தலைப்பு")} value={title} onChange={(e) => setTitle(e.target.value)} required />
