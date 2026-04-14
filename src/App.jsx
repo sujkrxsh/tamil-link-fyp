@@ -26,21 +26,20 @@ function App() {
     return unsubscribe;
   }, []);
 
-  if (loading) return null; // Prevents flashing while checking auth state
+  if (loading) return null;
 
   return (
     <LanguageProvider>
       <Router>
-        {/* Global Floating Background Shapes */}
-        <div className="bg-shapes">
+        
+        {/* Dynamic Background Shapes: Fades out upon successful authentication */}
+        <div className={`bg-shapes ${currentUser ? 'fade-out' : ''}`}>
           <div className="shape shape-1"></div>
           <div className="shape shape-2"></div>
         </div>
 
-        {/* Global Dynamic Navigation Bar */}
         <Navbar />
 
-        {/* App Routing */}
         <Routes>
           <Route path="/auth" element={currentUser ? <Navigate to="/" /> : <Auth />} />
           <Route path="/" element={currentUser ? <Home /> : <Navigate to="/auth" />} />
@@ -49,12 +48,12 @@ function App() {
           <Route path="/admin" element={currentUser ? <AdminDashboard /> : <Navigate to="/auth" />} />
         </Routes>
 
-        {/* Global Footer */}
         {currentUser && (
           <footer className="global-footer">
             © TamilLink '26. Fostering Community.
           </footer>
         )}
+        
       </Router>
     </LanguageProvider>
   );
