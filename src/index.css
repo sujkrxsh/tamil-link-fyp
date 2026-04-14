@@ -302,3 +302,62 @@ input:focus, textarea:focus {
   0% { transform: translate(0, 0) scale(1); } 
   100% { transform: translate(40px, 60px) scale(1.15); } 
 }
+
+/* --- Admin Dashboard Specifics --- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  padding: 1.5rem;
+  border-radius: 28px; /* Matches the Cosy Mobile squircle vibe */
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.08);
+}
+
+.stat-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--accent-solid);
+  line-height: 1;
+  margin-top: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+}
+
+.admin-event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  background: var(--bg-input);
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.admin-event-item:hover {
+  transform: translateX(4px);
+}
