@@ -12,7 +12,7 @@ const CreateEvent = () => {
   const [ticketLink, setTicketLink] = useState('');
   const [description, setDescription] = useState('');
   
-  // New state to hold the native Base64 string directly
+  // store the base64 string directly here
   const [imageBase64, setImageBase64] = useState(null);
   const [uploading, setUploading] = useState(false);
   
@@ -20,9 +20,10 @@ const CreateEvent = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  // ImgBB API Key
+  // keeping this here just cos
   const IMGBB_API_KEY = "f31520871bbee018759d22c5c1dc5461";
 
+  // kick them out if they arent a verified business
   useEffect(() => {
     const checkVerification = async () => {
       if (auth.currentUser) {
@@ -35,14 +36,15 @@ const CreateEvent = () => {
     checkVerification();
   }, []);
 
-  // --- NATIVE CAPACITOR PHOTO PICKER ---
+  // NATIVE ANDROID CAMERA HOOK
   const handleImagePick = async () => {
     try {
+      // this completely bypasses the browser file picker and uses the actual android gallery
       const image = await Camera.getPhoto({
         quality: 80,
         allowEditing: false,
-        resultType: CameraResultType.Base64, // Bypasses FileReader completely!
-        source: CameraSource.Photos // Opens the native Android gallery
+        resultType: CameraResultType.Base64, // CRITICAL: gets base64 directly so we dont have to convert a web path
+        source: CameraSource.Photos 
       });
 
       setImageBase64(image.base64String);
@@ -51,7 +53,7 @@ const CreateEvent = () => {
     }
   };
 
-  // --- IMGBB UPLOAD ---
+  // push base64 directly to imgbb
   const uploadToImgBB = async (base64data) => {
     const formData = new FormData();
     formData.append('image', base64data);
@@ -77,13 +79,14 @@ const CreateEvent = () => {
     try {
       let imageUrl = null;
       
+      // only run upload if they actually picked an image
       if (imageBase64) {
         try {
           imageUrl = await uploadToImgBB(imageBase64);
         } catch (uploadError) {
           alert(`Image Upload Failed: ${uploadError.message}`);
           setUploading(false);
-          return; 
+          return; // stop everything if image fails
         }
       }
 
@@ -108,6 +111,7 @@ const CreateEvent = () => {
     }
   };
 
+  // block render
   if (!userData) {
     return (
       <div className="app-container page-content" style={{textAlign: 'center', justifyContent: 'center'}}>
@@ -123,7 +127,7 @@ const CreateEvent = () => {
       
       <form onSubmit={handleSubmit} className="input-group">
         
-        {/* Replaced HTML Input with Native Click Handler */}
+        {/* Fake input box that triggers the native android gallery */}
         <div 
           onClick={handleImagePick}
           style={{ 

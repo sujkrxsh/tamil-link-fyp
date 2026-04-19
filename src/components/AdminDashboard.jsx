@@ -6,18 +6,18 @@ import { ShieldAlert, CheckCircle, XCircle, Trash2, Users, Calendar, AlertCircle
 import { useLanguage } from '../context/LanguageContext';
 
 const AdminDashboard = () => {
-  // Data States
+  // state for literally everything
   const [pendingApps, setPendingApps] = useState([]);
   const [verifiedBusinesses, setVerifiedBusinesses] = useState([]);
   const [allEvents, setAllEvents] = useState([]);
   const [reports, setReports] = useState([]);
   const [stats, setStats] = useState({ users: 0, events: 0, pending: 0, flags: 0, businesses: 0 });
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState(null); // for the little popup notifications
   
-  // UI Modal States
+  // popups
   const [showInitialPopup, setShowInitialPopup] = useState(false);
-  const [activeModal, setActiveModal] = useState(null); // 'requests', 'businesses', or 'events'
+  const [activeModal, setActiveModal] = useState(null); // tracks if we are looking at 'requests', 'businesses', or 'events'
   
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -27,34 +27,34 @@ const AdminDashboard = () => {
       if (!auth.currentUser) return navigate('/auth');
 
       try {
-        // Cryptographic Role Verification
+        // check if they actually have admin rights in firestore so regular users 
+        // cant just bypass this by typing /admin in the url
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (!userDoc.exists() || userDoc.data().isAdmin !== true) {
           return navigate('/'); 
         }
 
-        // Concurrent Data Fetching
+        // fetch everything at once to save time
         const [usersSnap, eventsSnap, reportsSnap] = await Promise.all([
           getDocs(collection(db, 'users')),
           getDocs(collection(db, 'events')),
           getDocs(collection(db, 'reports'))
         ]);
 
-        // Process Users
+        // filter users into pending and verified
         const usersData = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const pending = usersData.filter(u => u.applicationStatus === 'pending');
         const businesses = usersData.filter(u => u.isVerified === true);
         
-        // Process Events & Reports
         const eventsData = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const reportsData = reportsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Update State
         setPendingApps(pending);
         setVerifiedBusinesses(businesses);
         setAllEvents(eventsData);
         setReports(reportsData);
         
+        // update the big stats object
         setStats({
           users: usersData.length,
           events: eventsData.length,
@@ -63,7 +63,7 @@ const AdminDashboard = () => {
           businesses: businesses.length
         });
 
-        // Trigger the Alert Popup if pending requests exist
+        // annoy the admin if there are pending requests lol
         if (pending.length > 0) {
           setShowInitialPopup(true);
         }
@@ -79,12 +79,13 @@ const AdminDashboard = () => {
     verifyAdminAndFetchData();
   }, [navigate, t]);
 
+  // simple toast helper
   const showToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(null), 3000);
   };
 
-  // --- Administrative Actions ---
+  // BUTTON CLICK HANDLERS
 
   const handleApproval = async (userId, isApproved) => {
     try {
@@ -98,6 +99,8 @@ const AdminDashboard = () => {
       showToast(isApproved ? t("Business Approved!", "வணிகம் அங்கீகரிக்கப்பட்டது!") : t("Application Rejected.", "விண்ணப்பம் நிராகரிக்கப்பட்டது."));
       
       setPendingApps(prev => prev.filter(app => app.id !== userId));
+      
+      // manually update the local state so we don't have to re-fetch from firebase
       if (isApproved) {
         setVerifiedBusinesses(prev => [...prev, { ...appToUpdate, isVerified: true, businessName: appToUpdate.requestedBusinessName }]);
         setStats(prev => ({ ...prev, businesses: prev.businesses + 1 }));
@@ -110,6 +113,7 @@ const AdminDashboard = () => {
   };
 
   const handleRevokeBusiness = async (userId) => {
+    // browser confirm dialog is ugly but it works for safety
     if (!window.confirm(t("Are you sure you want to revoke this account's verified status?", "இந்தக் கணக்கின் சரிபார்க்கப்பட்ட நிலையை ரத்து செய்ய விரும்புகிறீர்களா?"))) return;
     
     try {
@@ -150,8 +154,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // --- Render States ---
-
+  // block render if checking auth
   if (loading) {
     return (
       <div className="app-container page-content">
@@ -163,7 +166,7 @@ const AdminDashboard = () => {
     );
   }
 
-  // --- Reusable Modal Wrapper ---
+  // a popup box
   const Modal = ({ title, children }) => (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(253, 251, 247, 0.8)', backdropFilter: 'blur(12px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
       <div className="profile-section animate-in" style={{ width: '100%', maxWidth: '450px', maxHeight: '80vh', overflowY: 'auto', position: 'relative', padding: '2rem 1.5rem' }}>
@@ -181,7 +184,7 @@ const AdminDashboard = () => {
   return (
     <div className="app-container page-content">
       
-      {/* Toast Notification */}
+      {/* little success/error popup at the bottom */}
       {toast && (
         <div className="error-toast" style={{ position: 'fixed', bottom: '20px', right: '20px', background: 'var(--bg-surface)', padding: '1rem', borderRadius: '12px', boxShadow: 'var(--shadow-glow)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle color="var(--accent-solid)" />
@@ -189,7 +192,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Initial Action Required Popup */}
+      {/* alerts them if a new society wants to join */}
       {showInitialPopup && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="profile-section animate-in" style={{ maxWidth: '90%', width: '380px', textAlign: 'center', padding: '2.5rem 2rem', position: 'relative' }}>
@@ -208,7 +211,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* --- MODALS --- */}
+      {/* the actual popups */}
       {activeModal === 'requests' && (
         <Modal title={t("Business Requests", "வணிக கோரிக்கைகள்")}>
           {pendingApps.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>{t("No pending applications.", "விண்ணப்பங்கள் இல்லை.")}</p> : 
@@ -264,7 +267,7 @@ const AdminDashboard = () => {
         </Modal>
       )}
 
-      {/* --- DASHBOARD UI --- */}
+      {/* main dashboard view */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
         <ShieldAlert size={36} color="var(--accent-solid)" />
         <h1 className="event-title" style={{ margin: 0 }}>{t("Admin Portal", "நிர்வாகி போர்டல்")}</h1>
@@ -283,7 +286,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Action Menu Grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
         <button onClick={() => setActiveModal('requests')} className="profile-section" style={{ padding: '1.25rem', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', border: stats.pending > 0 ? '1px solid var(--accent-solid)' : 'none' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -319,7 +321,7 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Flagged Content (Always visible due to urgency) */}
+      {/* reports at the bottom */}
       {reports.length > 0 && (
         <div className="profile-section" style={{ border: '1px solid #DC2626', background: '#FFFAFA' }}>
           <h2 style={{ marginBottom: '1rem', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

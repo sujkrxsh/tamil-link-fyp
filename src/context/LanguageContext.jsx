@@ -1,16 +1,16 @@
-// src/context/LanguageContext.jsx
 import React, { createContext, useState, useContext } from 'react';
 
 export const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('EN'); // Default to English
+  // start in english
+  const [language, setLanguage] = useState('EN');
 
   const toggleLanguage = () => {
     setLanguage((prev) => (prev === 'EN' ? 'TA' : 'EN'));
   };
 
-  // Translation helper function: pass it the English word and Tamil word
+  // custom translation hack
   const t = (enText, taText) => {
     return language === 'EN' ? enText : taText;
   };
@@ -22,5 +22,5 @@ export const LanguageProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use language easily
+// custom hook
 export const useLanguage = () => useContext(LanguageContext);

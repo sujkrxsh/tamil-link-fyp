@@ -14,29 +14,31 @@ const Auth = () => {
   const navigate = useNavigate();
 
   const handleAuth = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // stops the page from refreshing and wiping the state
     setIsProcessing(true);
     
     try {
       if (isLogin) {
-        // Log In Existing User
+        // standard firebase login
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // Register New User
+        // register them
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Create baseline user document in Firestore
+        
+        // gotta make a firestore doc too otherwise the profile page literally crashes 
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           email: email,
           isAdmin: false,
-          isVerified: false,
+          isVerified: false, // default to false so randoms can't post events
           createdAt: new Date()
         });
       }
 
-      // Navigate instantly on success without any artificial delay
+      // bounce them straight to the feed. removed the timeout because it was annoying.
       navigate('/');
 
     } catch (error) {
+      // native browser alerts are ugly but they work for now
       alert("Authentication failed: " + error.message);
       setIsProcessing(false);
     }
@@ -45,7 +47,6 @@ const Auth = () => {
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', position: 'relative', zIndex: 10 }}>
       
-      {/* Static Logo */}
       <img 
         src={logo} 
         alt="TamilLink Logo" 
@@ -59,7 +60,7 @@ const Auth = () => {
         }} 
       />
 
-      {/* Auth Form Card */}
+      {/* the main box thing */}
       <div style={{ width: '90%', maxWidth: '400px', padding: '2rem', background: 'var(--bg-surface)', borderRadius: '32px', boxShadow: 'var(--shadow-soft)' }}>
         <h2 style={{ textAlign: 'center', marginBottom: '0.5rem', fontSize: '1.6rem', color: 'var(--text-primary)' }}>
           {isLogin ? "Welcome Back" : "Join TamilLink"}
@@ -93,6 +94,7 @@ const Auth = () => {
           </button>
         </form>
 
+        {/* toggle between login and signup modes */}
         <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
           <button 
             onClick={() => setIsLogin(!isLogin)} 

@@ -9,30 +9,32 @@ import {
 } from 'lucide-react';
 
 const Profile = () => {
+  // core data
   const [userData, setUserData] = useState(null);
   const [mySocieties, setMySocieties] = useState([]);
   const [savedEvents, setSavedEvents] = useState([]);
   
-  // UI State
+  // modal toggles and UI states
   const [expandedSection, setExpandedSection] = useState(null); 
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Business Application & Metrics State
+  // business blah blah
   const [businessName, setBusinessName] = useState('');
   const [isApplying, setIsApplying] = useState(false);
   const [businessMetrics, setBusinessMetrics] = useState({ followers: 0, totalSaves: 0, eventsHosted: 0 });
   
-  // We only need 't' and 'toggleLanguage' now. 
   const { t, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // kick them out if they aren't logged in
     if (!auth.currentUser) return navigate('/auth');
 
     const fetchProfileData = async () => {
       try {
+        // grab user profile, follows, and saves in parallel to speed up loading. pretty proud of this promise.all
         const [userSnap, followsSnap, rsvpsSnap] = await Promise.all([
           getDoc(doc(db, 'users', auth.currentUser.uid)),
           getDocs(query(collection(db, 'follows'), where('userId', '==', auth.currentUser.uid))),
@@ -49,19 +51,23 @@ const Profile = () => {
 
         setMySocieties(followsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
+        // if they have saved events, fetch the actual event data for each one
         if (!rsvpsSnap.empty) {
           const eventPromises = rsvpsSnap.docs.map(async (rsvpDoc) => {
             const eventData = await getDoc(doc(db, 'events', rsvpDoc.data().eventId));
             if (eventData.exists()) return { rsvpId: rsvpDoc.id, eventId: eventData.id, ...eventData.data() };
-            return null;
+            return null; // catch missing events just in case
           });
           const resolvedEvents = (await Promise.all(eventPromises)).filter(e => e !== null);
           setSavedEvents(resolvedEvents);
         }
 
+        // if they are a verified business, fetch their analytics so they can see how popular they are
         if (parsedUser.isVerified && parsedUser.businessName) {
           const followersSnap = await getDocs(query(collection(db, 'follows'), where('organiserName', '==', parsedUser.businessName)));
           const myEventsSnap = await getDocs(query(collection(db, 'events'), where('creatorId', '==', auth.currentUser.uid)));
+          
+          // count total saves across all their events (nested queries are annoying but it works)
           let totalSavesCount = 0;
           const rsvpPromises = myEventsSnap.docs.map(ev => getDocs(query(collection(db, 'rsvps'), where('eventId', '==', ev.id))));
           const allRsvps = await Promise.all(rsvpPromises);
@@ -84,10 +90,11 @@ const Profile = () => {
     navigate('/auth');
   };
 
+  // toggle accordions
   const toggleSection = (section) => setExpandedSection(expandedSection === section ? null : section);
 
   const handleRemoveSociety = async (followId, e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // stop accordion from closing when clicking remove
     try { await deleteDoc(doc(db, 'follows', followId)); setMySocieties(prev => prev.filter(s => s.id !== followId)); } catch (error) {}
   };
 
@@ -96,6 +103,7 @@ const Profile = () => {
     try { await deleteDoc(doc(db, 'rsvps', rsvpId)); setSavedEvents(prev => prev.filter(ev => ev.rsvpId !== rsvpId)); } catch (error) {}
   };
 
+  // apply for business account
   const handleApplyBusiness = async (e) => {
     e.preventDefault();
     if (!businessName.trim() || !userData?.id) return;
@@ -111,7 +119,7 @@ const Profile = () => {
   return (
     <div className="app-container page-content">
       
-      {/* --- HEADER (BULLETPROOF LANGUAGE TOGGLE) --- */}
+      {/* header with the language toggle icon */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 className="event-title" style={{ fontSize: '1.8rem', margin: 0 }}>{t("Profile", "சுயவிவரம்")}</h1>
         <button 
@@ -133,12 +141,12 @@ const Profile = () => {
             boxShadow: 'var(--shadow-soft)'
           }}
         >
-          {/* This elegantly uses your existing translation hook to swap the text! */}
+          {/* translation hook handles the swap */}
           {t('அ', 'EN')}
         </button>
       </div>
 
-      {/* --- ACCOUNT INFO CARD --- */}
+      {/* basic user info */}
       <div style={{ background: 'var(--bg-main)', padding: '1.5rem', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', border: '1px solid var(--bg-input)' }}>
         <div style={{ background: 'var(--accent-gradient)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
           <User size={30} />
@@ -149,7 +157,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* --- BUSINESS PORTAL BUTTON --- */}
+      {/* big button to open the business dashboard or application */}
       <button onClick={() => setIsBusinessModalOpen(true)} style={{ width: '100%', padding: '1.25rem', borderRadius: '20px', border: 'none', background: userData?.isVerified ? '#E1FDEB' : 'var(--bg-input)', color: userData?.isVerified ? '#007F3B' : 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontWeight: 600, fontSize: '1rem', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Shield size={22} color={userData?.isVerified ? '#007F3B' : 'var(--accent-solid)'} />
@@ -158,7 +166,7 @@ const Profile = () => {
         {userData?.isVerified && <BarChart3 size={20} />}
       </button>
 
-      {/* --- EXPANDING LISTS --- */}
+      {/* accordions for saved stuff */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className={`expanding-card ${expandedSection === 'events' ? 'is-expanded' : ''}`} onClick={() => toggleSection('events')}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
@@ -208,7 +216,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* --- SIGN OUT PANEL BUTTON --- */}
+      {/* danger zone at the bottom */}
       <button 
         onClick={() => setIsSignOutModalOpen(true)}
         style={{ width: '100%', padding: '1.25rem', borderRadius: '20px', border: 'none', background: '#FEF2F2', color: '#DC2626', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem', marginTop: '2rem' }}
@@ -216,7 +224,7 @@ const Profile = () => {
         <LogOut size={20} /> {t("Sign Out", "வெளியேறு")}
       </button>
 
-      {/* --- SIGN OUT CONFIRMATION MODAL --- */}
+      {/* popup to make sure they don't accidentally click sign out */}
       {isSignOutModalOpen && (
         <div onClick={() => setIsSignOutModalOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
           <div onClick={(e) => e.stopPropagation()} className="animate-in" style={{ width: '100%', maxWidth: '320px', padding: '2.5rem 1.5rem', background: 'var(--bg-main)', borderRadius: '32px', textAlign: 'center', boxShadow: 'var(--shadow-soft)' }}>
@@ -237,7 +245,7 @@ const Profile = () => {
         </div>
       )}
 
-      {/* --- BUSINESS PORTAL MODAL --- */}
+      {/* the main business dashboard popup */}
       {isBusinessModalOpen && (
         <div onClick={() => setIsBusinessModalOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
           <div onClick={(e) => e.stopPropagation()} className="animate-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem 1.5rem', position: 'relative', background: 'var(--bg-main)', borderRadius: '32px', boxShadow: 'var(--shadow-soft)' }}>

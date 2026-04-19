@@ -1,4 +1,3 @@
-// src/components/EventFeed.jsx
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -7,9 +6,11 @@ const EventFeed = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // fetch everything on load
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        // grab the events collection from firestore
         const querySnapshot = await getDocs(collection(db, 'events'));
         const eventsData = querySnapshot.docs.map(doc => ({
           id: doc.id,
@@ -19,13 +20,14 @@ const EventFeed = () => {
       } catch (error) {
         console.error("Error fetching events: ", error);
       } finally {
-        setLoading(false);
+        setLoading(false); // stop the spinner even if it fails
       }
     };
 
     fetchEvents();
-  }, []);
+  }, []); // empty array so it only runs once and doesn't spam 
 
+  // show this while waiting for firebase
   if (loading) return <div className="loading-spinner">Loading Events...</div>;
 
   return (
@@ -44,14 +46,14 @@ const EventFeed = () => {
                 <h2>{event.title}</h2>
                 <p className="event-meta">📅 {event.date} | 📍 {event.location}</p>
                 
-                {/* Safety & Trust Requirement */}
+                {/*  verified badge  */}
                 <p className="event-organiser">
                   By {event.organiser} 
                   <span className="verified-badge" title="Verified Organiser"> ✔️ Verified</span>
                 </p>
               </div>
 
-              {/* Functional Requirement: Direct Ticket Link */}
+              {/* opens in new tab so they don't lose their place in the feed */}
               <a 
                 href={event.ticketLink} 
                 target="_blank" 
